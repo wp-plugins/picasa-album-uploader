@@ -91,19 +91,24 @@ In the future, an uninstall script will be provided to delete the options entry 
 1. In Picasa Select "Tools -> Configure Buttons..."
 1. In the "Current Buttons" section of the Picasa Dialog, select the "WordPress" button.
 1. Click the "Remove" button.
-1. To completely remove the button from Picasa, remove the associated `picasa_album_uploader.pbz` file from the Picasa configuration.  On Mac OSX the `pbz` file can be found in the Folder `Home/Library/Application Support/Google/Picasa3/buttons`.
+1. To completely remove the button from Picasa, remove the associated `picasa_album_uploader.pbz` file from the Picasa configuration.
 
-FIXME Windows file locations:
-C:\Program Files\Google\Picasa3\buttons
-On XP:  C:\Documents and Settings\[Username]\Local Settings\Application Data\Google\Picasa2\buttons  where [Username] is your Windows username.
+= Where are the Picasa buttons stored on my computer? =
 
-On Vista, it's C:\Users\[Username]\AppData\Local\Google\Picasa2\buttons.
+Button files end with `.pbz` and the location depends on the OS you are using:
 
-FIXME Troubleshooting section
-Reword
-When I click the "install" button, Firefox says it does not recognize the protocol.
+Windows:  C:\Program Files\Google\Picasa3\buttons
+XP:  C:\Documents and Settings\[Username]\Local Settings\Application Data\Google\Picasa3\buttons  where [Username] is your Windows username.
+Vista:  C:\Users\[Username]\AppData\Local\Google\Picasa3\buttons
+OSX: ~/Library/Application Support/Google/Picasa3/buttons
 
-This message means that Picasa has not registered itself with Firefox as being able to handle links starting with picasa://, which are used to install plugins. You could reinstall Picasa, which should cause it to re-register itself. If it doesn't, or if you don't want to reinstall Picasa, it's also possible to install the button manually.
+== Troubleshooting section ==
+= When I click the "install" button, my browser says it does not recognize the protocol. =
+
+This message means that Picasa has not registered itself with your browser as being the application to handle links starting with picasa://. You could try to reinstall Picasa, which should cause it to register itself with your browser.
+
+= If the Button does not show up in Picasa ... =
+First, confirm that the button file is present in the Picasa button folder.  The location of the button file depends on the OS you are using.  See the FAQ section to locate the button folder.
 
 FIXME How do I install the plugin manually?
 
