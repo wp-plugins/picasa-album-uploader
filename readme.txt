@@ -28,20 +28,23 @@ This plugin is based on the initial works by [clyang](http://clyang.net/blog/200
 
 1.  Configure one of the permlink options in the Admin Settings -> Permalinks screen.  See FAQ for details.
 1.  Upload the picasa-album-uploader to the `wp-content/plugins/` directory
-1.  Activate the plugin through the Admin -> Plugins Screen
-1.  Configure the plugin through the Admin -> Settings -> Media Screen.
-1.  Generate the Picasa Button Download File
-1.  Use the "Install Image Upload Button in Picasa Desktop" Link in the Admin Settings -> Media to import the generated button into Picasa
+1.  Activate the plugin in Admin -> Plugins
+1.  Configure the plugin options in Admin -> Settings -> Media
+1.  Use the "Install Image Upload Button in Picasa Desktop" Link in Admin -> Settings -> Media to import the upload button into Picasa
 1.  If desired, create the files header-picasa_album_uploader.php and footer-picasa_album_uploader.php in the top level of your themes directory to provide customized header and footer in the upload confirmation dialog displayed by Picasa.
 1.  Begin uploading photos from Picasa to your blog.
 
-To display the button load link in a post or page, simply insert the shortcode `[picasa_album_uploader_button]` at the desired location.
+= Usage Hints =
+
+To display the button load link in a post or page, insert the shortcode `[picasa_album_uploader_button]` at the desired location.
+
+A log of plugin activity useful to debug failures can be obtained by selecting the plugin option 'Enable Debug Log' and saving the configuration change.  The logging might impact performance of your website so should only be enabled when debugging is required.
 
 == Frequently Asked Questions ==
 
 = Why are Permalinks required? =
 
-The Picasa Desktop client is very picky about the format of the URLs that it will accept during the upload process and will only accept a simple URL consisting of a single filename.  The use of the slash (/) and question-marks (?) in the URL syntax results in no files being uploaded by Picasa to the server.
+The Picasa Desktop client is very picky about the format of the URLs that it will accept during the upload process and will only accept a simple URL consisting of a single filename.  The use of the slash (/) and question-marks (?) in the URL syntax results in no files being uploaded by Picasa to the server.  In order to satisfy this requirement, permalinks must be used.
 
 = I changed the slug name (or other part of my WordPress URL) and my button in Picasa stopped working.  What do I do? =
 
@@ -66,13 +69,13 @@ There is no executable code in the download.  It is comprised of two elements:
 
 Yes!  Just put the shortcode `[picasa_album_uploader_button]` where you want the button to display.
 
-= Can I have buttons from multiple WordPress sites installed at the same time? =
+= Can I have buttons from multiple WordPress sites installed in Picasa at the same time? =
 
 Yes!  The tool tip for the button will identify the name of the WordPress site associated with the button.  You might want to change the button icon to graphically differentiate the connected WordPress installs.  I have no experience with WPMU so can't comment on how this will function within that environment.
 
-= Can I change the button image? =
+= How do I change the button icon? =
 
-In the future, a theme will be allowed to override the button graphic.  Right now, the only way to change the button is by replacing the file `picasa-album-uploader/images/wordpress-logo-blue.psd` in the plugin directory with the desired content.  The layer containing the button image must be "upload-button".  The image should be no larger than 40 pixels wide by 25 pixels high with 72 dpi resolution.  The color model used must be RGB with 8 bits/channel and should use a transparent background.  Full details can be found at the [Picasa Button API](http://code.google.com/apis/picasa/docs/button_api.html "Picasa Button API") reference.
+In the future, a theme will be allowed to override the button graphic.  Right now, the only way to change the button is by replacing the file `picasa-album-uploader/images/wordpress-logo-blue.psd` in the plugin directory with the desired content.  This is a photoshop file and a compatible image editor must be used.  The layer containing the button image must be named "upload-button".  The image should be no larger than 40 pixels wide by 25 pixels high with 72 dpi resolution.  The color model used must be RGB with 8 bits/channel and should use a transparent background.  Full details can be found at the [Picasa Button API](http://code.google.com/apis/picasa/docs/button_api.html "Picasa Button API") reference.
 
 = Other Picasa Uploader plugins require files be placed in the `wp-admin` and/or the server root.  Does this plugin require the same? =
 
@@ -105,16 +108,19 @@ OSX: ~/Library/Application Support/Google/Picasa3/buttons
 == Troubleshooting section ==
 = When I click the "install" button, my browser says it does not recognize the protocol. =
 
-This message means that Picasa has not registered itself with your browser as being the application to handle links starting with picasa://. You could try to reinstall Picasa, which should cause it to register itself with your browser.
+This message means that Picasa has not registered itself with your browser as being the application to handle links starting with `picasa://`. You could try to reinstall Picasa, which should cause it to register itself with your browser.  You must also be using at least Picasa v3.0.
 
-= If the Button does not show up in Picasa ... =
-First, confirm that the button file is present in the Picasa button folder.  The location of the button file depends on the OS you are using.  See the FAQ section to locate the button folder.
+= When I click the "install" button, Picasa does not launch. =
 
-FIXME How do I install the plugin manually?
+Make sure you are running at least Picasa version 3.0 and that Picasa can open on your computer.
 
-Just download this file (right click and "save link as") to the "buttons" subdirectory of your Picasa installation (usually C:\Program Files\Google\Picasa3\buttons on Windows). Then, restart Picasa and the button should show up.
+= Reporting Problems =
 
-If it doesn't, you may need to go to Tools -> Configure Buttons and move the button to the right column so that it shows up.
+Please follow these instructions to report problems:
+
+1. Enable debug logging in Admin -> Settings -> Media
+1. Reproduce the problem
+1. Provide the log results, description of problem, plugin version and WordPress version in a post to the [Support Forum](http://wordpress.org/tags/picasa-album-uploader?forum_id=10 "Picasa Album Uploader Support Forum").
 
 == Screenshots ==
 
@@ -124,7 +130,7 @@ If it doesn't, you may need to go to Tools -> Configure Buttons and move the but
 
 = 0.4 =
 * Address issues when permalinks are not being used on a site.  Picasa Desktop is challenged if permalinks are not enabled when processing URLs.
-* Added error logging in plugin to aid in diagnosis
+* Added debug logging in plugin to aid in diagnosis of reported problems
 
 = 0.3.1 =
 * Fix defect in redirect URL to display results page
