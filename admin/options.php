@@ -95,7 +95,7 @@ class picasa_album_uploader_options
 		// Add Plugin Error Logging
 		add_settings_field( 
 				'pau_plugin_settings[error_log_enabled]', 
-				'Enable Error Log', 
+				'Enable Debug Log', 
 				array( &$this, 'error_log_enabled_html'), 
 				'media', 
 				'pau_settings_section' );
@@ -124,7 +124,7 @@ class picasa_album_uploader_options
 		}
 		
 		if ( $this->error_log_enabled ) {
-			echo "<div class='error'><p><a href='options-media.php'>" . PAU_PLUGIN_NAME . "</a> logging is enabled.</p>";
+			echo "<div class='error'><p><a href='options-media.php'>" . PAU_PLUGIN_NAME . "</a> logging is enabled.  If left enabled, this can affect database performance.</p></div>";
 		}
 	}
 	
@@ -162,7 +162,6 @@ class picasa_album_uploader_options
 		echo do_shortcode( "[picasa_album_uploader_button]" );
 		?>
 		<?php
-		// FIXME Provide instructions on manual install
 	}
 	
 	/**
@@ -189,7 +188,7 @@ class picasa_album_uploader_options
 		$checked = $this->error_log_enabled ? "checked" : "" ;
 		?>
 		<input type="checkbox" name="pau_plugin_settings[error_log_enabled]" value="1" <?php echo $checked; ?>>
-		Enable Plugin Error Logging. When enabled, log will display below.
+		Enable Plugin Debug Logging. When enabled, log will display below.
 		<?php
 		if ( $this-> error_log_enabled ) {
 			echo "<div class=pau_error_log>";
