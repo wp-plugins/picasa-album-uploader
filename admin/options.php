@@ -54,8 +54,8 @@ class picasa_album_uploader_options
 		$this->slug = $options['slug'] ? $options['slug'] : 'picasa_album_uploader';
 		
 		// Init value for error log
-		$this->error_log_enabled = $options['error_log_enabled'] ? $options['error_log_enabled'] : 0;
-		$this->error_log = $options['error_log'] ? $options['error_log'] : array();
+		$this->debug_log_enabled = $options['debug_log_enabled'] ? $options['debug_log_enabled'] : 0;
+		$this->debug_log = $options['debug_log'] ? $options['debug_log'] : array();
 		
 		// When displaying admin screens ...
 		if ( is_admin() ) {
@@ -66,9 +66,9 @@ class picasa_album_uploader_options
 		}
 
 		// If logging is enabled, setup save in the footers.
-		if ($this->error_log_enabled) {
-			add_action('admin_footer', array( &$this, 'save_error_log'));
-			add_action('wp_footer', array( &$this, 'save_error_log'));				
+		if ($this->debug_log_enabled) {
+			add_action('admin_footer', array( &$this, 'save_debug_log'));
+			add_action('wp_footer', array( &$this, 'save_debug_log'));				
 		}
 	}
 		
@@ -94,14 +94,14 @@ class picasa_album_uploader_options
 		
 		// Add Plugin Error Logging
 		add_settings_field( 
-				'pau_plugin_settings[error_log_enabled]', 
+				'pau_plugin_settings[debug_log_enabled]', 
 				'Enable Debug Log', 
-				array( &$this, 'error_log_enabled_html'), 
+				array( &$this, 'debug_log_enabled_html'), 
 				'media', 
 				'pau_settings_section' );
 		add_settings_field(
-				'pau_plugin_settings[error_log]',
-				array( &$this, 'error_log_html'),
+				'pau_plugin_settings[debug_log]',
+				array( &$this, 'debug_log_html'),
 				'media',
 				'pau_settings_section' );
 		
@@ -119,12 +119,15 @@ class picasa_album_uploader_options
 	function pau_admin_notice()
 	{
 		if ( get_option('permalink_structure') == '' ) {
-			echo "<div class='error'><p><a href='options-media.php'>" . PAU_PLUGIN_NAME
-				. "</a> requires the use of <a href='options-permalink.php'>Permalinks</a></p></div>";			
+			echo '<div class="error"><p>';
+			printf(__('%1$s requires the use of %2$s'), '<a href="options-media.php">' . PAU_PLUGIN_NAME . '</a>', '<a href="options-permalink.php">Permalinks</a>');
+			echo '</p></div>';
 		}
 		
-		if ( $this->error_log_enabled ) {
-			echo "<div class='error'><p><a href='options-media.php'>" . PAU_PLUGIN_NAME . "</a> logging is enabled.  If left enabled, this can affect database performance.</p></div>";
+		if ( $this->debug_log_enabled ) {
+			echo '<div class="error"><p>';
+			printf(__('%s logging is enabled.  If left enabled, this can affect database performance.'),'<a href="options-media.php">' . PAU_PLUGIN_NAME . '</a>');
+			echo '</p></div>';
 		}
 	}
 	
@@ -143,8 +146,8 @@ class picasa_album_uploader_options
 		$options['slug'] = preg_replace($slug_pattern, $slug_replacement, $options['slug']);
 		
 		// Cleanup error log if it's disabled
-		if ( ! $options['error_log_enabled'] ) {
-			$options['error_log'] = array();
+		if ( ! $options['debug_log_enabled'] ) {
+			$options['debug_log'] = array();
 		}
 
 		return $options;
@@ -155,44 +158,37 @@ class picasa_album_uploader_options
 	 **/
 	function settings_section_html()
 	{	
-		?>
-		<p>To use the Picasa Album Uploader, install the Button in Picasa Desktop using this automated install link:</p>
-		<?php
+		echo '<p>';
+		_e('To use the Picasa Album Uploader, install the Button in Picasa Desktop using this automated install link:');
+		echo '</p>';
 		// Display button to download the Picasa Button Plugin
 		echo do_shortcode( "[picasa_album_uploader_button]" );
-		?>
-		<?php
 	}
 	
 	/**
 	 * Emit HTML to create form field for slug name
 	 **/
 	function slug_html()
-	{ ?>
-		<input type='text' name='pau_plugin_settings[slug]' value='<?php echo $this->slug; ?>' />
-		<p>
-			Set the slug used by the plugin.  
-			Only alphanumeric, dash (-) and underscore (_) characters are allowed.
-			White space will be converted to dash, illegal characters will be removed.
-			<br />When the slug name is changed, 
-			a new button must be installed in Picasa to match the new setting.
-		</p>
-		<?php
+	{ 
+		echo '<input type="text" name="pau_plugin_settings[slug]" value="' . $this->slug . '" />';
+		echo '<p>';
+		_e('Set the slug used by the plugin.  Only alphanumeric, dash (-) and underscore (_) characters are allowed.  White space will be converted to dash, illegal characters will be removed.');
+		echo '<br />';
+		_e('When the slug name is changed, a new button must be installed in Picasa to match the new setting.');
+		echo '</p>';
 	}
 	
 	/**
-	 * Emit HTML to create form field used to enable/disable Error Logging
+	 * Emit HTML to create form field used to enable/disable Debug Logging
 	 **/
-	function error_log_enabled_html()
+	function debug_log_enabled_html()
 	{ 
-		$checked = $this->error_log_enabled ? "checked" : "" ;
-		?>
-		<input type="checkbox" name="pau_plugin_settings[error_log_enabled]" value="1" <?php echo $checked; ?>>
-		Enable Plugin Debug Logging. When enabled, log will display below.
-		<?php
-		if ( $this-> error_log_enabled ) {
+		$checked = $this->debug_log_enabled ? "checked" : "" ;
+		echo '<input type="checkbox" name="pau_plugin_settings[debug_log_enabled]" value="1" ' . $checked . '>';
+		_e('Enable Plugin Debug Logging. When enabled, log will display below.');
+		if ( $this-> debug_log_enabled ) {
 			echo "<div class=pau-error-log>";
-			foreach ($this->error_log as $line) {
+			foreach ($this->debug_log as $line) {
 				echo "$line<br/>\n";
 			}
 			echo "</div>";
@@ -202,22 +198,34 @@ class picasa_album_uploader_options
 	/**
 	 * Log an error message for display
 	 **/
-	function error_log($msg)
+	function debug_log($msg)
 	{
-		if ( $this->error_log_enabled )
-			array_push($this->error_log, date("Y-m-d H:i:s") . " " . $msg);
+		if ( $this->debug_log_enabled )
+			array_push($this->debug_log, date("Y-m-d H:i:s") . " " . $msg);
 	}
 	
 	/**
 	 * Save the error log if it's enabled
 	 **/
-	function save_error_log()
+	function save_debug_log()
 	{
-		if ( $this->error_log_enabled ) {
+		if ( $this->debug_log_enabled ) {
 			$options = get_option('pau_plugin_settings');
-			$options['error_log'] = $this->error_log;
+			$options['debug_log'] = $this->debug_log;
 			update_option('pau_plugin_settings', $options);
 		}
+	}
+	
+	/**
+	 * Log errors to server log and debug log
+	 *
+	 * @return void
+	 * @author Kenneth J. Brucker <ken@pumastudios.com>
+	 **/
+	function error_log($msg)
+	{
+		error_log(PAU_PLUGIN_NAME . ": " . $msg);
+		$this->debug_log($msg);
 	}
 } // END class 
 ?>

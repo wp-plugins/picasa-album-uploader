@@ -3,7 +3,7 @@
 Plugin Name: Picasa Album Uploader
 Plugin URI: http://pumastudios.com/software/picasa-album-uploader-wordpress-plugin
 Description: Easily upload media from Google Picasa Desktop into WordPress.  Navigate to <a href="options-media.php">Settings &rarr; Media</a> to configure.
-Version: 0.4.1
+Version: 0.5
 Author: Kenneth J. Brucker
 Author URI: http://pumastudios.com/blog/
 
@@ -98,18 +98,6 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 		var $pau_options;
 		
 		/**
-		 * Mapping from result codes to message strings
-		 *
-		 * @var array
-		 * @access private
-		 **/
-		var $result_strings = array (
-			PAU_RESULT_SUCCESS => "Files uploaded successfully.",
-			PAU_RESULT_NO_FILES => "Error:  No files provided for upload",
-			PAU_RESULT_NO_PERMISSION => "Sorry, You do not have permission to upload files to this Blog."
-		);
-		
-		/**
 		 * Constructor function for picasa_album_uploader class.
 		 *
 		 * Adds the needed shortcodes and filters to processing stream
@@ -119,7 +107,7 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 			$this->pau_options = new picasa_album_uploader_options();
 
 			// Check for permalink usage
-			$this->pau_options->error_log("Permalink structure: " . get_option('permalink_structure'));
+			$this->pau_options->debug_log("Permalink structure: " . get_option('permalink_structure'));
 			$this->using_permalinks = get_option('permalink_structure') != '';
 			
 			// Shortcode to generate URL to download Picassa Button
@@ -141,9 +129,10 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 				if ( $this->using_permalinks ) {
 					$link =  '<a href="picasa://importbutton/?url=' . get_bloginfo('wpurl') . '/' 
 						. $this->pau_options->slug . '/'. PAU_BUTTON_FILE_NAME 
-						. '" title="Download Picasa Button and Install in Picasa Desktop">Install Image Upload Button in Picasa Desktop</a>';
+						. '" title="' . __('Download Picasa Button and Install in Picasa Desktop'). '">'
+						. __('Install Image Upload Button in Picasa Desktop'). '</a>';
 				} else {
-					$link = "Picasa Album Uploader Configuration Required.";
+					$link = __('Picasa Album Uploader Configuration Required.');
 				}
 			return $link;
 		}	
@@ -164,11 +153,11 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 			$query = $this->using_permalinks ? $wp->request : $wp->query_vars['page_id'];
 			$requested_page = self::parse_request($query);
 			if (! $requested_page) {
-				$this->pau_options->error_log("Request is not for plugin: '".$query."'");
+				$this->pau_options->debug_log("Request is not for plugin: '".$query."'");
 				return $posts;
 			}
 			
-			$this->pau_options->error_log("Request will be handled by plugin");
+			$this->pau_options->debug_log("Request will be handled by plugin");
 			
 			//	Request is for this plugin.  Setup a dummy Post.			
 			$post = self::gen_post();
@@ -188,14 +177,48 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 
 			// If this is a result page it will be handled by default browser - template redirect is not needed
 			if ( PAU_RESULT == $this->pau_serve ) {
-				$result = $_REQUEST['result'];
-				$post->post_content = $this->result_strings[$result];
+				$post->post_content = self::result_page($_REQUEST[result], $_REQUEST[file_count], $_REQUEST[errors]);
 			} else {
 				// Add template redirect action to process the page
 				add_action('template_redirect', array(&$this, 'template_redirect'));				
 			}
 			
 			return array($post);
+		}
+		
+		/**
+		 * Generate the results page
+		 *
+		 * @param int result_code result of upload request
+		 * @param int file_count number of files uploaded
+		 * @param int errors number of errors encountered during upload
+		 * @access private
+		 * @return post content
+		 **/
+		function result_page($result_code, $file_count, $errors)
+		{
+			switch ($result_code) {
+				case PAU_RESULT_SUCCESS: // Went through process loop
+					$good = $file_count - $errors; // Number of successful uploaded files
+					$content = '<p>' . sprintf(_n('%d image uploaded successfully.','%d images uploaded successfully.', $good),$good) . '</p>';
+					if ($errors > 0) {
+						$content .= '<p>' . sprintf(_n('%d error detected.','%d errors detected.', $errors), $errors);
+						$content .= '  ' . __('See the server error log for details.') . '</p>';
+					}
+					break;
+				case PAU_RESULT_NO_FILES:
+					$content = '<p>' . __('Error:  No files provided for upload.  Related errors might appear in the server error log.') . '</p>';
+					$content .= '<p>' . __('If your Server is configured to use %s, please refer to the plugin readme for configuration information.') . '</p>';
+					break;
+				case PAU_RESULT_NO_PERMISSION:
+					$content = '<p>' . __('Sorry, You do not have permission to upload files to this Blog.') . '</p>';
+					break;
+				default:
+					$content = '<p>' . sprintf(__('Unknown result code %d reported.'), $result_code) . '</p>';
+					break;
+			}
+			
+			return $content;
 		}
 
 		/**
@@ -239,7 +262,7 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 		 * @return array
 		 * @author Kenneth J. Brucker <ken@pumastudios.com>
 		 */
-		function add_body_class($classes, $class) {
+		function add_body_class($classes) {
 			$classes[] = "picasa-album-uploader-minibrowser";
 			return $classes;
 		}
@@ -252,7 +275,7 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 		 * @return void
 		 * @author Kenneth J. Brucker <ken@pumastudios.com>
 		 **/
-		function add_post_class($classes, $class)
+		function add_post_class($classes)
 		{
 			$classes[] = "post-picasa-album-uploader";
 			return $classes;
@@ -267,7 +290,7 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 		private function parse_request( $wp_request ){
 			$tokens = split( '/', $wp_request );
 			
-			$this->pau_options->error_log("Parsing request '$wp_request'");
+			$this->pau_options->debug_log("Parsing request '$wp_request'");
 
 			if ( $this->pau_options->slug != $tokens[0] ) {
 				return false; // Request is not for this plugin
@@ -296,7 +319,7 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 					break;
 				
 				default:
-					$this->pau_options->error_log("bad request token: '" . $tokens[1] . "'");
+					$this->pau_options->debug_log("bad request token: '" . $tokens[1] . "'");
 					return false; // slug matched, but 2nd token did not
 			}
 			
@@ -312,8 +335,8 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 		 */
 		private function minibrowser() {
 			global $post; // To setup the Post content
-			
-			$this->pau_options->error_log("Generating Minibrowser content");
+						
+			$this->pau_options->debug_log("Generating Minibrowser content");
 			
 			// Add class to the body element for CSS styling of the entire page that will be displayed in the minibrowser
 			add_filter('body_class', array(&$this, 'add_body_class'));
@@ -323,16 +346,17 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 			
 			// Make sure user is logged in to proceed
 			if (false == is_user_logged_in()) {
-				$this->pau_options->error_log("Redirecting minibrowser request to login");
+				$this->pau_options->debug_log("Redirecting minibrowser request to login");
 				
 				// Redirect user to the login page - come back here after login complete
 				if (wp_redirect(wp_login_url( self::build_url('minibrowser') ))) {
 					// Save log file messages before exit
-					$this->pau_options->save_error_log();
+					$this->pau_options->save_debug_log();
 					// Requested browser to redirect - done here.
 					exit;
 				}
 				
+				// FIXME - Suspect this is broken
 				// wp_redirect failed for some reason - setup page text with redirect back to this location
 				$content .= '<p>Please <a href="'.wp_login_url( self::build_url('minibrowser') )
 						. '" title="Login">login</a> to continue.</p>';
@@ -343,12 +367,12 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 						$content .= self::build_upload_form();					
 					} else {
 						$this->pau_options->error_log("Empty RSS feed from Picasa; unable to build minibrowser form.");
-					 	$content .= '<p class="error">Sorry, but no pictures were received from Picasa.</p>';
+					 	$content .= '<p class="error">' . __('Sorry, but no pictures were received from Picasa.') . '</p>';
 					}					
 				} else {
 					// User is not allowed to upload files
-					$this->pau_options->error_log("User does not have permission to upload files");
-					$content .= '<p class="error">Sorry, you do not have permission to upload files.</p>';
+					$this->pau_options->debug_log("User does not have permission to upload files");
+					$content .= '<p class="error">' . __('Sorry, you do not have permission to upload files.') . '</p>';
 				}
 			}
 			
@@ -362,15 +386,15 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 			
 			// If Theme has a defined the plugin template, use it, otherwise use template from the plugin
 			if ($theme_template = get_query_template('page-picasa_album_uploader')) {
-				$this->pau_options->error_log("Using Theme supplied template: " . $theme_template);
+				$this->pau_options->debug_log("Using Theme supplied template: " . $theme_template);
 				include($theme_template);
 			} else {
-				$this->pau_options->error_log("Using plugin supplied template");
+				$this->pau_options->debug_log("Using plugin supplied template");
 				include(PAU_PLUGIN_DIR.'/templates/page-picasa_album_uploader.php');
 			}
 
 			// Save log file messages before exit
-			$this->pau_options->save_error_log();
+			$this->pau_options->save_debug_log();
 			exit; // Finished displaying the minibrowser page - No more WP processing should be performed
 		}
 		
@@ -385,7 +409,12 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 		 * @access private
 		 */
 		private function upload_images() {
-			$this->pau_options->error_log("Upload request received");
+			$errors = 0;
+			$file_count = 0;
+			
+			$this->pau_options->debug_log("Upload request received");
+			$this->pau_options->debug_log("_FILES: " . print_r($_FILES,true));
+			$this->pau_options->debug_log("_POST: " . print_r($_POST,true));
 			
 			require_once( ABSPATH . 'wp-admin/includes/admin.php' ); // Load functions to handle uploads
 
@@ -394,23 +423,26 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 
 			// User must be able to upload files to proceed
 			if (! current_user_can('upload_files')) {
-				$this->pau_options->error_log("User is not allowed to upload files.");
+				$this->pau_options->debug_log("User is not allowed to upload files.");
 				$result = PAU_RESULT_NO_PERMISSION;
 			} else {
 				if ( $_FILES ) {
 					// Don't need to test that this is a wp_upload_form in wp_handle_upload() in loop below so set test_form to false
 					$overrides = array( 'test_form' => false );
 
-					$i = 0; // Loop counter
 					foreach ( $_FILES as $key => $file ) {
+						$file_count++; // Count number of files handled
+						
 						if ( empty( $file ) ) {
-							$this->pau_options->error_log("Empty value for filename detected, skipping.");
+							$this->pau_options->error_log("File information missing for uploaded file.");
+							$errors++;
 							continue; // Skip if value empty
-						}
+						}		
 
 						$status = wp_handle_upload( $file, $overrides );
 						if (isset($status['error'])) {
 							$this->pau_options->error_log("Error detected during file upload: " . $status['error']);
+							$errors++;
 							continue; // Error on this file, go to next one.
 						}
 
@@ -418,17 +450,17 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 
 						$url = $status['url'];
 						$type = $status['type'];
-						$file = $status['file'];						
+						$file_name = $status['file'];						
 						
-						// Use title, caption and description received from form
-						$title = $_POST['title'][$i];
-						$excerpt = $_POST['caption'][$i];
-						$content = $_POST['description'][$i];
+						// Use title, caption and description received from form (subtract 1 from file count to get zero based index)
+						$title = $_POST['title'][$file_count - 1];
+						$excerpt = $_POST['caption'][$file_count - 1];
+						$content = $_POST['description'][$file_count - 1];
 						
-						$this->pau_options->error_log('Received file: "' . $file . '"'); 
-						$this->pau_options->error_log('Title: "' . $title . '"');
-						$this->pau_options->error_log('Excerpt: "' . $excerpt . '"');
-						$this->pau_options->error_log('Description: "' . $content . '"');
+						$this->pau_options->debug_log('Received file: "' . $file_name . '"'); 
+						$this->pau_options->debug_log('Title: "' . $title . '"');
+						$this->pau_options->debug_log('Excerpt: "' . $excerpt . '"');
+						$this->pau_options->debug_log('Description: "' . $content . '"');
 
 						$object = array_merge( array(
 							'post_title' => $title,
@@ -441,27 +473,26 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 						// Insert the image into the WP media library
 						$id = wp_insert_attachment($object, $file,0);
 						if ( !is_wp_error($id) ) {
-							wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $file ) );
-							do_action('wp_create_file_in_uploads', $file, $id); // for replication
+							wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $file_name ) );
+							do_action('wp_create_file_in_uploads', $file_name, $id); // for replication
 						} else {
 							$this->pau_options->error_log("Error from wp_insert_attachment: " . $id->get_error_message());
+							$errors++;
 						}
-						
-						$i++; // Next array element					
 					} // end foreach $file
-					$this->pau_options->error_log("Processed $i files from Picasa");
+					$this->pau_options->debug_log("Processed $file_count files from Picasa with $errors errors.");
 					$result = PAU_RESULT_SUCCESS;
 				} else {
-					$this->pau_options->error_log("Picasa did not upload any files");
+					$this->pau_options->debug_log("Picasa did not upload any files");
 					$result = PAU_RESULT_NO_FILES;
 				}
 			}
 
 			// Tell Picasa to open a result page in the browser.
-			echo self::build_url('result?result=' . $result);
+			echo self::build_url('result?result=' . $result . '&errors=' . $errors . '&file_count=' . $file_count);
 
 			// Save log file messages before exit
-			$this->pau_options->save_error_log();
+			$this->pau_options->save_debug_log();
 			exit; // No more WP processing should be performed.
 		}
 
@@ -503,40 +534,37 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 			$pData = $xh->xmlParse();
 
 			// Start div used to display images
-			$content .= '<p class="pau-header">Selected images</p>';
+			$content .= '<p class="pau-header">' . __('Selected images') . '</p>';
 			$content .= '<div class="pau-images">';
 
 			// For each image, display the image and setup hidden form field for upload processing.
 			foreach($pData as $e) {
-				$this->pau_options->error_log("Form Setup: " . attribute_escape($e['photo:imgsrc']));
+				$this->pau_options->debug_log("Form Setup: " . attribute_escape($e['photo:imgsrc']));
 				
 				$content .= "<img class='pau-img' src='".attribute_escape( $e['photo:thumbnail'] )."?size=-96' title='".attribute_escape( $e['title'] )."'>";
-				$large = attribute_escape( $e['photo:imgsrc'] ) ."?size=1024";
-				$content .= "<input type='hidden' name='$large'>\n";
+				$large = attribute_escape( $e['photo:imgsrc'] ) .'?size=1024';
+				$content .= '<input type="hidden" name="' . $large . '">';
 				
 				// Add input tags to update image description, etc.
 				// TODO Put fields into div that can be hidden/displayed
-				$content .= "<dl class='pau-attributes'>\n"; // Start Definition List
-				$content .= "<dt class='pau-img-header'>Title<dd><input type='text' name='title[]' class='pau-img-text' value='".attribute_escape( $e['title'] )."' />";
-				$content .= "<dt class='pau-img-header'>Caption<dd><input type='text' name='caption[]' class='pau-img-text' />";				
-				$content .= "<dt class='pau-img-header'>Description<dd><textarea name='description[]' class='pau-img-textarea' rows='4' cols='80'>".attribute_escape( $e['description'] )."</textarea>";
-				$content .= "</dl>\n"; // End Definition List
+				$content .= '<dl class="pau-attributes">'; // Start Definition List
+				$content .= '<dt class="pau-img-header"">' . __('Title') . '<dd><input type="text" name="title[]" class="pau-img-text" value="'.attribute_escape( $e['title'] ).'" />';
+				$content .= '<dt class="pau-img-header">' . __('Caption') . '<dd><input type="text" name="caption[]" class="pau-img-text" />';				
+				$content .= '<dt class="pau-img-header">' . __('Description') . '<dd><textarea name="description[]" class="pau-img-textarea" rows="4" cols="80">' . attribute_escape( $e['description'] ) . '</textarea>';
+				$content .= '</dl>'; // End Definition List
 			}
 
 			// TODO Provide method for admin screen to pick available image sizes
-			$content .= <<<FORM_FIN
-</div><!-- End of pau-images class -->
-<div class='header'>Select your upload image size
-<INPUT type="radio" name="size" onclick="chURL('640')">640
-<INPUT type="radio" name="size" onclick="chURL('1024')" CHECKED>1024
-<INPUT type="radio" name="size" onclick="chURL('1600')">1600
-<INPUT type="radio" name="size" onclick="chURL('0')">Original
+			$content .= '</div><!-- End of pau-images class --><div class="header">' . __('Select your upload image size:') .
+'<INPUT type="radio" name="size" onclick="chURL(\'640\')">640
+<INPUT type="radio" name="size" onclick="chURL(\'1024\')" CHECKED>1024
+<INPUT type="radio" name="size" onclick="chURL(\'1600\')">1600
+<INPUT type="radio" name="size" onclick="chURL(\'0\')">Original
 </div>
-<div class='button'>
-<input type="submit" value="Upload">&nbsp;
+<div class="button">
+<input type="submit" value="' . __('Upload') . '">&nbsp;
 </div>
-</form>
-FORM_FIN;
+</form>';
 
 			return $content;
 		}
@@ -556,7 +584,7 @@ FORM_FIN;
 			$post->post_author = 1;
 			$post->post_date = $formattedNow;
 			$post->post_date_gmt = $formattedNow;
-			$post->post_title = 'Picasa Album Uploader';
+			$post->post_title = __('Picasa Album Uploader');
 			$post->post_category = 0;
 			$post->post_excerpt = '';
 			$post->post_status = 'publish';
@@ -615,7 +643,7 @@ FORM_FIN;
 			$guid = self::guid(); // TODO Only Generate GUID once for a blog - keep same guid - allow blog config to update it.
 			$upload_url = $pau->build_url('minibrowser');
 			
-			$this->pau_options->error_log("Building Button with target URL " . $upload_url);
+			$this->pau_options->debug_log("Building Button with target URL " . $upload_url);
 
 			// XML to describe the Picasa plugin button
 			$pbf = <<<EOF
@@ -651,7 +679,7 @@ EOF;
 			$zip = new zipfile();
 			if (null == $zip) {
 				$this->pau_options->error_log("Unable to initialize zipfile module; can't generate button.");
-				$this->pau_options->save_error_log();  // Must call directly to save since process will exit
+				$this->pau_options->save_debug_log();  // Must call directly to save since process will exit
 				echo "Unable to initialize zipfile module; can't generate button.";
 				exit;  // No more WP processing should be performed
 			}
@@ -663,7 +691,7 @@ EOF;
 			$fsize = @filesize( $psd_filename );
 			if (false == $fsize) {
 				$this->pau_options->error_log("Unable to get filesize of " . $psd_filename . "; can't generate button.");
-				$this->pau_options->save_error_log();  // Must call directly to save since process will exit
+				$this->pau_options->save_debug_log();  // Must call directly to save since process will exit
 				echo "Unable to get filesize of " . $psd_filename . "; can't generate button.";
 				exit;  // No more WP processing should be performed
 			}
@@ -678,8 +706,8 @@ EOF;
 
 			echo $zipcontents;
 			
-			$this->pau_options->error_log("Delivered button file to client");
-			$this->pau_options->save_error_log();  // Must call directly to save since process will exit
+			$this->pau_options->debug_log("Delivered button file to client");
+			$this->pau_options->save_debug_log();  // Must call directly to save since process will exit
 			
 			exit; // Finished sending the button - No more WP processing should be performed
 		}
