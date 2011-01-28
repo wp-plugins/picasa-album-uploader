@@ -119,6 +119,7 @@ if ( ! class_exists( 'picasa_album_uploader' ) ) {
 			
 			// Add CSS to HTML header
 			add_action('wp_head', array(&$this, 'add_css'));
+			add_action('admin_head', array(&$this, 'add_css'));			
 			
 			// i18n support
 			add_action('init', array(&$this, 'load_textdomain'));
