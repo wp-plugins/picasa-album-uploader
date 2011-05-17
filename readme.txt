@@ -143,6 +143,10 @@ Please follow these instructions to report problems:
 
 == Changelog ==
 
+= 0.6.1 =
+
+* Assume wp_redirect() will succeed as rest of core does.
+
 = 0.6 =
 
 * Supports Wordpress Multi-site
@@ -181,7 +185,12 @@ Please follow these instructions to report problems:
 
 == Upgrade Notice ==
 
+= 0.6.1 =
+
+* Some sites failing due to [Wordpress Trac Ticket 17472](https://core.trac.wordpress.org/ticket/17472 "wp_redirect() should true on success")
+
 = 0.6 =
+
 * Support WP multi-site configurations
 
 = 0.5 =
